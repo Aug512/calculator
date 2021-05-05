@@ -1,11 +1,9 @@
-import { OutputFileType } from "typescript"
-
 interface parseBracketsReturn {
   val: string
   index: number
 }
 
-type operation = 'sum' | 'dec' | 'mul' | 'div'
+type operation = 'sum' | 'dec' | 'mul' | 'div' | 'pow'
 
 interface parseReturn {
   numbers: number[]
@@ -18,6 +16,7 @@ interface operationsReturn {
   dec(a: number, b: number): number,
   mul(a: number, b: number): number,
   div(a: number, b: number): number,
+  pow(a: number, b: number): number,
 }
 
 const Parser = () => {
@@ -25,7 +24,12 @@ const Parser = () => {
     parse: (str: string): parseReturn => {
       const currentValue = {
         val: 0,
-        posState: 1
+        posState: 1,
+        dotState: 0,
+        logData: {
+          basis: null,
+          value: null,
+        }
       }
 
       const parseBrackets = (str: string, startedIndex: number): parseBracketsReturn => {
@@ -33,6 +37,19 @@ const Parser = () => {
         return {
           val: str.slice(startedIndex + 1, closeBracketIndex),
           index: closeBracketIndex
+        }
+      }
+
+      const calculateLog = (basis: number, value: number): number => {
+        return Math.log(value) / Math.log(basis)
+      }
+
+      const getFact = (n: number): number => {
+        if (n % 1 !== 0) {
+          alert(`n isn't integer`)
+          return -1
+        } else {
+          return (n === 1) ? n : n * getFact(n - 1)
         }
       }
       
@@ -51,6 +68,9 @@ const Parser = () => {
         },
         div: (a: number, b: number) => {
           return b === 0 ? -Infinity : a / b
+        },
+        pow: (a: number, b: number) => {
+          return Math.pow(a, b)
         }
       }
 
@@ -60,14 +80,32 @@ const Parser = () => {
         expAnswer: 0,
       }
 
+  
       for (let i = 0; i < str.length; i++) {
         let sym = str[i]
 
+        if (sym === '.' || sym === ',') {
+          currentValue.dotState = 10
+          continue
+        }
+
+        if (str[i] === 'e') {
+          currentValue.val = Math.E
+        }
+
         if (!isNaN(parseInt(sym, 10))) {
-          if (currentValue.val === 0) {
-            currentValue.val += parseInt(sym, 10) * currentValue.posState
+          if (currentValue.dotState === 0) {
+            if (currentValue.val === 0) {
+              currentValue.val += parseInt(sym, 10) * currentValue.posState
+            } else {
+              currentValue.val = currentValue.val * 10 + parseInt(sym, 10) * currentValue.posState
+            }
+          } else if (currentValue.dotState === 10) {
+            currentValue.val = +(`${currentValue.val}.${parseInt(sym, 10)}`)
+            currentValue.dotState *= 10
           } else {
-            currentValue.val = currentValue.val * 10 + parseInt(sym, 10) * currentValue.posState
+            currentValue.val = +(`${currentValue.val}${parseInt(sym, 10)}`)
+            currentValue.dotState *= 10
           }
         }
 
@@ -76,23 +114,56 @@ const Parser = () => {
           numbers.push(currentValue.val)
           currentValue.val = 0
           currentValue.posState = 1
+          currentValue.dotState = 0
         }
         if (sym === '-' && i !== 0) {
           operators.push('dec')
           numbers.push(currentValue.val)
           currentValue.val = 0
           currentValue.posState = 1
+          currentValue.dotState = 0
         }
         if (sym === '-' && (i === 0 || str[i - 1] === '(')) {
           currentValue.posState = -1
         }
-        if (sym === '(') {
+
+        if (sym === '!' ) {
+          currentValue.val = getFact(currentValue.val)
+        }
+
+        if (sym === 'l') {
+          if (`${str[i + 1]}${str[i + 2]}` === 'og') {
+            for (let j = i + 3; j < str.length; j++) {
+              if (!isNaN(parseInt(str[j], 10)) || str[j] === '.' || str[j] === ',' || str[j] === '-') {
+                currentValue.logData.basis = currentValue.logData.basis
+                  ? `${currentValue.logData.basis}${str[j]}`
+                  : str[j]
+              } else {
+                i = j - 1
+                break
+              } 
+            }
+          }
+          if (str[i + 1] === 'n') {
+            currentValue.logData.basis = Math.E
+            i++
+          }
+          if (str[i + 1] === 'g') {
+            currentValue.logData.basis = 10
+            i++
+          }
+          if (str[i + 1] === 'b') {
+            currentValue.logData.basis = 2
+            i++
+          }
+        }
+
+        if (sym === '(' && currentValue.logData.basis === null) {
           const parsed = parseBrackets(str, i)
           const val = parsed.val
           const answer = Parser().parse(val)
 
           if (i !== 0 && currentValue.val === 0) {
-            // output.numbers.push(answer.expAnswer)
             currentValue.val = answer.expAnswer
           } 
           if (i === 0 && str.length === parsed.index + 1) {
@@ -105,16 +176,46 @@ const Parser = () => {
           if (i !== 0 && output.numbers.length === 0) {
             output.numbers.push(output.expAnswer)
           } else if (i !== 0 && output.numbers.length === 2) {
-            output.numbers = [output.expAnswer, answer.expAnswer]
+            output.numbers = [...output.numbers, answer.expAnswer]
           }
 
           i = parsed.index
         }
+
+        if (sym === '(' && currentValue.logData.basis !== null) {
+          const parsed = parseBrackets(str, i)
+          const val = parsed.val
+          const answer = Parser().parse(val)
+
+          currentValue.logData.value = answer.expAnswer
+          const log = calculateLog(currentValue.logData.basis, currentValue.logData.value)
+
+          if (parsed.index === str.length - 1) {
+            output.numbers.push(log)
+          }
+
+          currentValue.val = log
+          currentValue.logData.basis = null
+          currentValue.logData.value = null
+
+          i = parsed.index
+          continue
+        }
+
         if (sym === '*') {
           operators.push('mul')
           numbers.push(currentValue.val)
           currentValue.val = 0
           currentValue.posState = 1
+          currentValue.dotState = 0
+        }
+
+        if (sym === '^') {
+          operators.push('pow')
+          numbers.push(currentValue.val)
+          currentValue.val = 0
+          currentValue.posState = 1
+          currentValue.dotState = 0
         }
 
         if (sym === '/') {
@@ -122,32 +223,46 @@ const Parser = () => {
           numbers.push(currentValue.val)
           currentValue.val = 0
           currentValue.posState = 1
+          currentValue.dotState = 0
         }
 
         if (i === str.length - 1) {
           numbers.push(currentValue.val)
         }
       }
-      if (operators[0]) {
+  
+      if (operators.length > 1) {
         const answer = operators.reduce((acc, operation, index) => {
-          if (!output.expAnswer) {
-            output.expAnswer = numbers[0]
-          }
-          acc += operations[operation](output.expAnswer, numbers[index + 1])
+          output.expAnswer = output.expAnswer !== 0 ? output.expAnswer : acc 
+          acc = operations[operation](output.expAnswer, output.numbers[index + 1])
+          output.expAnswer = acc
           return acc
-        }, 0)
+        }, output.numbers[0])
 
         output.expAnswer = answer
       }
+
+      if (operators.length === 1) {
+        const answer = operators.reduce((acc, operation, index) => {
+          output.expAnswer = output.expAnswer !== 0 ? output.expAnswer : acc 
+          acc = operations[operation](output.expAnswer, output.numbers[index + 1])
+          output.expAnswer = acc
+
+          return acc
+        }, numbers[0])
+
+        output.expAnswer = answer
+      }
+
       if (operators.length === 0 && !output.expAnswer) {
         output.expAnswer = currentValue.val
-        return output
       }
+
       return output   //temporary
 
-      //return string equal to answer of input expression
-    },
 
+      // return output.expAnswer    //return number value equal to answer of input expression
+    }
   }
 }
 

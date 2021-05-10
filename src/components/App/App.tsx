@@ -8,8 +8,8 @@ function App() {
   return (
     <div className="App">
       <input type='checkbox' checked={stringInputMode} onChange={() => setStringInputMode(prev => !prev)}/>
-      {stringInputMode && <StringInput />}
-      {!stringInputMode && <BasicButtons />}
+      {!stringInputMode && <StringInput />}
+      {stringInputMode && <BasicButtons />}
     </div>
   )
 }

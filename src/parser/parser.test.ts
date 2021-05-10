@@ -8,6 +8,7 @@ describe ('Parser function', () => {
     expect(_.parse('1234')).toEqual({numbers: [1234], operators: [], expAnswer: 1234})
     expect(_.parse('1.234')).toEqual({numbers: [1.234], operators: [], expAnswer: 1.234})
     expect(_.parse('e')).toEqual({numbers: [Math.E], operators: [], expAnswer: Math.E})
+    expect(_.parse('pi')).toEqual({numbers: [Math.PI], operators: [], expAnswer: Math.PI})
   })
 
   test('is correctly parse str "x+y"', () => {
@@ -76,8 +77,8 @@ describe ('Parser function', () => {
 
     expect(_.parse('((12+3)/(2+3))')).toEqual({numbers: [15, 5], operators: ['div'], expAnswer: 3})
     expect(_.parse('((12+3)/(2+3)+1)')).toEqual({numbers: [15, 5, 1], operators: ['div', 'sum'], expAnswer: 4})
-    expect(_.parse('(1+(2+(3+4))')).toEqual({numbers: [10], operators: [], expAnswer: 10})
-    expect(_.parse('(1+(2+(3+4))-5')).toEqual({numbers: [10, 5], operators: ['dec'], expAnswer: 5})
+    expect(_.parse('(1+(2+(3+4)))')).toEqual({numbers: [10], operators: [], expAnswer: 10})
+    expect(_.parse('(1+(2+(3+4)))-5')).toEqual({numbers: [10, 5], operators: ['dec'], expAnswer: 5})
   })
 
   test('is correctly parse 2+ operations', () => {
@@ -131,5 +132,36 @@ describe ('Parser function', () => {
     expect(_.parse('4!-2!')).toEqual({numbers: [24, 2], operators: ['dec'], expAnswer: 22})
     expect(_.parse('4!/(6-3)!')).toEqual({numbers: [24, 6], operators: ['div'], expAnswer: 4})
     expect(_.parse('log4(3!-2)')).toEqual({numbers: [1], operators: [], expAnswer: 1})
+  })
+
+  test('is handling errors', () => {
+    function parse(exp: string) {
+      try {
+        _.parse(exp)
+      } catch (e) {
+        throw e
+      }
+    }
+
+    expect(() => parse('log(8)')).toThrow(TypeError)
+    expect(() => parse('log8')).toThrow(TypeError)
+    expect(() => parse('log8 + 2')).toThrow(TypeError)
+    expect(() => parse('ln+1')).toThrow(TypeError)
+    expect(() => parse('ln8')).toThrow(TypeError)
+    expect(() => parse('ln(8)')).not.toThrow(TypeError)
+
+    expect(() => parse('   ')).toThrow(TypeError)
+    expect(() => parse('3 !')).not.toThrow(TypeError)
+    expect(() => parse('e 3')).toThrow(TypeError)
+    expect(() => parse('pi     3')).toThrow(TypeError)
+    expect(() => parse('e3')).toThrow(TypeError)
+    expect(() => parse('3pi!')).toThrow(TypeError)
+    expect(() => parse('e+3')).not.toThrow(TypeError)
+    expect(() => parse('pi +3')).not.toThrow(TypeError)
+    
+    expect(() => parse('leg')).toThrow(TypeError)
+    expect(() => parse('lol2(8)')).toThrow(TypeError)
+    expect(() => parse('le8')).toThrow(TypeError)
+    expect(() => parse('lpi8')).toThrow(TypeError)
   })
 })

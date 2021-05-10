@@ -11,6 +11,17 @@ interface parseReturn {
   expAnswer: number
 }
 
+interface ICurrentValue {
+  val: number
+  posState: 1 | -1
+  dotState: number
+  logData: {
+    basis: null | number | string
+    value: null | number
+  }
+  bracketsLevel: number
+}
+
 interface operationsReturn {
   sum(a: number, b: number): number,
   dec(a: number, b: number): number,
@@ -22,20 +33,23 @@ interface operationsReturn {
 const Parser = () => {
   return {
     parse: (str: string): parseReturn => {
-      const currentValue = {
+      const currentValue: ICurrentValue = {
         val: 0,
         posState: 1,
         dotState: 0,
         logData: {
           basis: null,
           value: null,
-        }
+        },
+        bracketsLevel: -1,
       }
 
       const parseBrackets = (str: string, startedIndex: number): parseBracketsReturn => {
-        const closeBracketIndex = str.split('').findIndex((sym: string, index: number) => sym === ')' && index > startedIndex)
+        const closingBrackets = []
+        str.split('').forEach((sym: string, index: number) => {if (sym === ')') closingBrackets.push(index)})
+        const closeBracketIndex = closingBrackets[0 + currentValue.bracketsLevel]
         return {
-          val: str.slice(startedIndex + 1, closeBracketIndex),
+          val: str.slice(startedIndex + 1, closeBracketIndex).split('').filter((sym: string) => sym !== '(').join(''),
           index: closeBracketIndex
         }
       }
@@ -159,6 +173,7 @@ const Parser = () => {
         }
 
         if (sym === '(' && currentValue.logData.basis === null) {
+          currentValue.bracketsLevel += 1
           const parsed = parseBrackets(str, i)
           const val = parsed.val
           const answer = Parser().parse(val)
@@ -183,23 +198,19 @@ const Parser = () => {
         }
 
         if (sym === '(' && currentValue.logData.basis !== null) {
+          currentValue.bracketsLevel += 1
           const parsed = parseBrackets(str, i)
           const val = parsed.val
           const answer = Parser().parse(val)
 
           currentValue.logData.value = answer.expAnswer
-          const log = calculateLog(currentValue.logData.basis, currentValue.logData.value)
-
-          if (parsed.index === str.length - 1) {
-            output.numbers.push(log)
-          }
+          const log = calculateLog(+currentValue.logData.basis, currentValue.logData.value)
 
           currentValue.val = log
           currentValue.logData.basis = null
           currentValue.logData.value = null
 
           i = parsed.index
-          continue
         }
 
         if (sym === '*') {
@@ -258,10 +269,7 @@ const Parser = () => {
         output.expAnswer = currentValue.val
       }
 
-      return output   //temporary
-
-
-      // return output.expAnswer    //return number value equal to answer of input expression
+      return output
     }
   }
 }

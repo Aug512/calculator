@@ -55,6 +55,7 @@ describe ('Parser function', () => {
 
   test('is correctly parse brackets', () => {
     expect(_.parse('(1*2)')).toEqual({numbers: [1, 2], operators: ['mul'], expAnswer: 2})
+    expect(_.parse('(-1)')).toEqual({numbers: [-1], operators: [], expAnswer: -1})
     expect(_.parse('(10*2)')).toEqual({numbers: [10, 2], operators: ['mul'], expAnswer: 20})
     expect(_.parse('(1*20)')).toEqual({numbers: [1, 20], operators: ['mul'], expAnswer: 20})
     expect(_.parse('(10*20)')).toEqual({numbers: [10, 20], operators: ['mul'], expAnswer: 200})
@@ -66,10 +67,17 @@ describe ('Parser function', () => {
     expect(_.parse('(1+2)*3')).toEqual({numbers: [3, 3], operators: ['mul'], expAnswer: 9})
 
     expect(_.parse('(1+2)+(2*3)')).toEqual({numbers: [3, 6], operators: ['sum'], expAnswer: 9})
+    expect(_.parse('((1+2)+(2*3))')).toEqual({numbers: [3, 6], operators: ['sum'], expAnswer: 9})
     expect(_.parse('(1-3)/(2-1)')).toEqual({numbers: [-2, 1], operators: ['div'], expAnswer: -2})
     expect(_.parse('(1-3)/(-1)')).toEqual({numbers: [-2, -1], operators: ['div'], expAnswer: 2})
 
     expect(_.parse('12/(1-1)')).toEqual({numbers: [12, 0], operators: ['div'], expAnswer: -Infinity})
+    expect(_.parse('(1+2+3)+(2*3)')).toEqual({numbers: [6, 6], operators: ['sum'], expAnswer: 12})
+
+    expect(_.parse('((12+3)/(2+3))')).toEqual({numbers: [15, 5], operators: ['div'], expAnswer: 3})
+    expect(_.parse('((12+3)/(2+3)+1)')).toEqual({numbers: [15, 5, 1], operators: ['div', 'sum'], expAnswer: 4})
+    expect(_.parse('(1+(2+(3+4))')).toEqual({numbers: [10], operators: [], expAnswer: 10})
+    expect(_.parse('(1+(2+(3+4))-5')).toEqual({numbers: [10, 5], operators: ['dec'], expAnswer: 5})
   })
 
   test('is correctly parse 2+ operations', () => {
@@ -113,6 +121,7 @@ describe ('Parser function', () => {
     expect(_.parse('14/log2(16)')).toEqual({numbers: [14, 4], operators: ['div'], expAnswer: 3.5})
     expect(_.parse('(2^3)-log4(16)')).toEqual({numbers: [8, 2], operators: ['dec'], expAnswer: 6})
     expect(_.parse('log4(64)*(1.5*2)')).toEqual({numbers: [3, 3], operators: ['mul'], expAnswer: 9})
+    expect(_.parse('log4(4*2^2)*(1.5*2)')).toEqual({numbers: [3, 3], operators: ['mul'], expAnswer: 9})
   })
 
   test('is correctly parse factorials', () => {
@@ -121,9 +130,6 @@ describe ('Parser function', () => {
     expect(_.parse('5!/6')).toEqual({numbers: [120, 6], operators: ['div'], expAnswer: 20})
     expect(_.parse('4!-2!')).toEqual({numbers: [24, 2], operators: ['dec'], expAnswer: 22})
     expect(_.parse('4!/(6-3)!')).toEqual({numbers: [24, 6], operators: ['div'], expAnswer: 4})
+    expect(_.parse('log4(3!-2)')).toEqual({numbers: [1], operators: [], expAnswer: 1})
   })
-
-  //TODO: brackets in brackets `(a+(b+c))+d`
-  //      check spaces parsing `(a +( b+ c)) + d`
-  //      errors indication `*a+b) - (c` 
 })
